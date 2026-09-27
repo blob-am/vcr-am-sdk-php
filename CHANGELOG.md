@@ -2,6 +2,51 @@
 
 All notable changes to this package will be documented in this file.
 
+## [0.9.0] — 2026-09-27
+
+### Added — an idempotency key on every fiscal call
+
+- **`registerSale`, `registerSaleRefund`, `registerPrepayment` and `registerPrepaymentRefund` take an optional key as their second argument.** The server has honoured `Idempotency-Key` on all four endpoints for a long time. This SDK could not send one, and its README stated the opposite of the truth — that fiscalization is not guaranteed idempotent server-side. A retry written on that belief files a second fiscal receipt, and the only way back from one of those is a refund.
+
+  ```php
+  $client->registerSale($sale, "order-{$order->id}");
+  ```
+
+  The key is validated at the call site rather than at the server, so the stack trace still names the order it belongs to, and it is measured in characters — a key built from non-ASCII text is not rejected for being two bytes per character.
+
+  A body the server rejects on validation spends no key: fix the payload and retry with the same one.
+
+### Added — `receiptUrl` on the four fiscal responses
+
+- Nullable, because the API grew the field after these models shipped. A convenience link must never be the reason a fiscal response fails to parse.
+
+### Added — `PendingResource::$mayResubmit` says whether to send the request again
+
+- VCR's own retry of a document the tax authority never received is now opt-in and off by default, so a `502` no longer implies "we will finish this for you". An integration that assumes it does leaves the sale unfiscalized; one that resends while VCR is still settling the document gets a second fiscal receipt.
+
+  `true` means SRC registered nothing and nothing will send it from VCR's side — resubmitting is how the document gets fiscalized. `false` means the document is still VCR's to settle, so read `$statusUrl` instead of re-posting. Always `false` on a `409`: the same payload earns the same rejection.
+
+  ```php
+  try {
+      $client->registerSale($sale);
+  } catch (VcrApiException $e) {
+      if ($e->body->pending?->mayResubmit === true) {
+          $this->retryLater($sale); // SRC has nothing; it is yours to send
+      }
+      // otherwise poll $e->body->pending?->statusUrl — do not resend
+  }
+  ```
+
+  Nullable, because a VCR older than this field does not send it. `null` means the same as `false`, which is what those servers did — the parser keeps the handle rather than rejecting it over a missing field.
+
+### Changed — the minimum Guzzle is now 7.15.2
+
+- The floor was `^7.10`, and 7.10.0 through 7.15.1 carry published advisories, one of them high: CVE-2026-69246, where a noncanonical host bypasses host-based checks. Composer 2.9 already refuses to resolve a version with a live advisory (`audit.block-insecure`, on by default), so in practice a fresh install never picked one — this writes the minimum down for anyone who has turned that off or runs an older Composer.
+
+### Changed — the published archive carries only what you run
+
+- `tests/`, `phpunit.xml.dist`, `phpstan.neon.dist` and `pint.json` are excluded from the dist archive, which halves it: 419,840 bytes to 225,280. Nothing in `src/` moved. If you vendor this package into something you distribute — the WooCommerce plugin scopes it into the ZIP merchants install — that scaffolding no longer travels with it.
+
 ## [0.8.0] — 2026-08-28
 
 ### Changed — `SaleItem::$department` is now optional (breaking)
