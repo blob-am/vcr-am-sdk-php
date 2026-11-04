@@ -2,6 +2,15 @@
 
 All notable changes to this package will be documented in this file.
 
+## [Unreleased]
+
+## [0.12.0] — 2026-11-04
+
+### Added
+
+- `prepaymentId` on `RegisterSaleInput`. Names the prepayment `amount.prepayment` is spent from, so offsetting one order cannot use up another order's prepayment. A prepayment that cannot cover the amount refuses the sale with a `400` and nothing saved.
+- `returnRemainder` on `RegisterPrepaymentRefundInput`. Returns all that sales left of a partly used prepayment, split the way it was paid. Without it such a refund is still refused with a `409`; if sales used everything the answer is a `400`.
+
 ## [0.11.2] — 2026-09-30
 
 ### Changed
