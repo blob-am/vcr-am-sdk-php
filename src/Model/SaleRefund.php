@@ -19,6 +19,7 @@ final readonly class SaleRefund
         public float $cashAmount,
         public ?Receipt $receipt,
         public array $items,
+        public ?float $prepaymentAmount = null,
     ) {
     }
 }
