@@ -4,6 +4,13 @@ All notable changes to this package will be documented in this file.
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-11-16
+
+### Added
+
+- `RequestObserver`, passed as `requestObserver` to `VcrClient` and `PairingClient`. It is told about every call once it has ended: method, path, status, duration, the idempotency key, a one-line failure reason, and the server's trace id from the new `VCR-Trace-Id` response header. For a journal on the integrator's side.
+- `VcrClient::submitSupportReport()`. Sends a person's message and your diagnostics to VCR.AM support and returns a reference to show them.
+
 ## [0.13.1] — 2026-11-08
 
 ### Changed
